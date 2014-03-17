@@ -1,0 +1,148 @@
+body {
+  background-image: -webkit-gradient(linear,  left top,  left bottom,
+      color-stop(0.00, red),
+      color-stop(16%, orange),
+      color-stop(32%, yellow),
+      color-stop(48%, green),
+      color-stop(60%, blue),
+      color-stop(76%, indigo),
+      color-stop(1.00, violet));
+  }
+}
+
+.inline {
+  display: none;
+}
+
+.main {
+  float: left;
+  width: 60%;
+}
+
+#chat-window {
+  height: 400px;
+  width: 100%;
+  background-color: #333333;
+  padding: 1em;
+  overflow: scroll;
+}
+
+#chat-window p {
+  margin: .5em;
+}
+
+#chat-window .me {
+  color: BlanchedAlmond;
+}
+
+#chat-window .them {
+  color: AliceBlue
+}
+
+#chat-window a {
+  color: LawnGreen;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+#chat-window a:hover {
+  color: yellow;
+}
+
+#chat-window a:visited {
+  color: yellow;
+}
+
+#chat-window img {
+  cursor: pointer;
+}
+
+#to {
+  padding-right: 1em;
+}
+
+#to:hover {
+  cursor: pointer;
+}
+
+.available-file {
+  cursor: pointer;
+  background-color: MidnightBlue;
+  border: 1px solid white;
+  border-radius: .5em;
+  padding: .5em;
+}
+
+.sidebar {
+  float: right;
+}
+
+#file-list {
+  border: 1px solid black;
+  padding: 1em;
+}
+
+#file-list .file {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+#file-list .file:visited {
+  color: black;
+}
+
+#file-list .file:hover {
+  color: blue;
+}
+
+#users-list {
+  border: 1px solid black;
+  padding: 1em;
+}
+
+#users-list .name {
+  cursor: pointer;
+  padding: .25em;
+}
+
+body {
+  width: 80%;
+  margin: 0 auto;
+  color: white;
+}
+
+#progress-list .progress-bar {
+  background-color: Black;
+  padding: 5px;
+  width: 100%;
+  position: relative;
+}
+#progress-list .progress-bar .chunk {
+  display: inline-block;
+  height: 0.5em;
+  width: 0.5em;
+  border: 1px solid black;
+  box-sizing:border-box;
+  -moz-box-sizing:border-box;
+  -webkit-box-sizing:border-box;
+}
+#progress-list .progress-bar .chunk.unrequested {
+  background-color: Red;
+}
+#progress-list .progress-bar .chunk.requested {
+  background-color: Orange;
+}
+#progress-list .progress-bar .chunk.queued {
+  background-color: Yellow;
+}
+#progress-list .progress-bar .chunk.done {
+  background-color: Green;
+}
+#progress-list .progress-text {
+  color: white;
+}
+
+h1.title {
+  float: right;
+  font-family: "Comic Sans", "Comic Sans MS", "cursive";
+}

@@ -1,0 +1,33 @@
+{
+  "name": "slick",
+  "version": "0.0.0",
+  "description": "A simple way to send files to your friends",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin" :"./lib/cli.js",
+  "author": "",
+  "license": "BSD-2-Clause",
+  "dependencies": {
+    "express": "~3.4.8",
+    "ejs": "~0.8.5",
+    "redis": "0.10.1",
+    "node-uuid": "1.4.1",
+    "ws": "0.4.31",
+    "colors": "0.6.2",
+    "underscore": "1.6.0",
+    "yargs": "1.2.1",
+    "webworker-threads": "0.4.11",
+    "node-localstorage": "0.3.4"
+  },
+  "devDependencies": {
+    "browserify": "3.32.0",
+    "mocha": "1.7.4",
+    "mocha-phantomjs": "3.0.0",
+    "phantomjs": "1.9.0-6",
+    "uglify-js": "2.3.6",
+    "chai": "1.6.1",
+    "nodemon": "0.7.8"
+  }
+}

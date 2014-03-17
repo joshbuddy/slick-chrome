@@ -1,0 +1,1 @@
+var encrypter = require('../lib/encrypter')
