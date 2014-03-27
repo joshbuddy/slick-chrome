@@ -38,8 +38,10 @@ var BrowserUI = module.exports = function(client) {
     ui.displayMessage([{type: 'from', value: ''}, {type: 'user', value: userId},  {type: 'text', value: " " + emote}], 'them');
   });
 
-  client.on("initiatingFileSending", function(to, fileId) {
-    ui.createSendingProgressBar(to, fileId);
+  client.on("initiatingFileSending", function(to, fileId, reader) {
+    ui.createSendingProgressBar(to, fileId, reader);
+    console.log("to: "+to+", fileId: "+fileId);
+    client.transferFileChunk(to, fileId, 0);
   });
 
   client.on("fileSendingChunkRequested", function(to, fileId, chunkIndex) {
@@ -60,6 +62,7 @@ var BrowserUI = module.exports = function(client) {
   });
 
   client.on("receivedMoreBytes", function(fileId, chunkIndex, bytesReceived, startTime) {
+    console.log("receivedMoreBytes fileId: "+fileId+" chunkIndex:"+chunkIndex);
     document.getElementById(fileId).children[1+chunkIndex].classList.add('queued');
     ui.updateReceivingProgressBar(fileId, bytesReceived, startTime);
   });
@@ -281,8 +284,10 @@ BrowserUI.prototype.displayMessage = function(serializedMessage, classname) {
           if (self.client.possibleFiles[fileId].url) {
             self.completeFile(fileId);
           } else {
+            console.log('creating progress bar')
             var progressBar = document.createElement("div");
             progressBar.id = fileId;
+            console.log('fileId:'+fileId)
             progressBar.className = "progress-bar";
             var progressText = document.createElement("p");
             progressText.className = "progress-text";
@@ -294,6 +299,7 @@ BrowserUI.prototype.displayMessage = function(serializedMessage, classname) {
               progress.classList.add("unrequested");
               progressBar.appendChild(progress);
             }
+            console.log('chunkCount:'+chunkCount)
             document.getElementById('progress-list').appendChild(progressBar);
             self.client.createWriter(fileId);
           }
@@ -321,7 +327,7 @@ BrowserUI.prototype.displayMessage = function(serializedMessage, classname) {
   }
 }
 
-BrowserUI.prototype.createSendingProgressBar = function(to, fileId) {
+BrowserUI.prototype.createSendingProgressBar = function(to, fileId, reader) {
   if (!document.getElementById(to + fileId)) {
     this.downloads[to + fileId] = Date.now();
     var progressBar = document.createElement("div");
@@ -334,9 +340,7 @@ BrowserUI.prototype.createSendingProgressBar = function(to, fileId) {
     transferStart.setAttribute("type", "hidden");
     transferStart.setAttribute("value", Date.now());
     progressBar.appendChild(transferStart);
-    var f = this.client.clientFiles[fileId];
-    var chunkCount = Math.ceil(f.size/this.client.blockSize);
-    for (var i=0; i<chunkCount; i++) {
+    for (var i=0; i< reader.chunkCount; i++) {
       var progress = document.createElement("span");
       progress.classList.add("chunk");
       progress.classList.add("unrequested");
@@ -496,12 +500,13 @@ var Client = module.exports = function(url, roomId, opts) {
 
   this.url = url;
   this.roomId = roomId;
-  this.blockSize = 1024 * 1024;
+  this.chunkSize = 1024 * 1024;
   this.slickDir;
   this.clientFiles = {}; // files that you have offered
   this.possibleFiles = {}; // files that have been offered to you
   this.sendFiles = {}; // we're going to have to keep track of what we sent so far when we deal with disconnects anyway. though we're going to need an ack for what they actually got. right now I'm only keeping track of bytes sent, but later we'll record which chunks were processed here.
   this.users = {};
+  this.readers = {};
   this.writers = {};
   this.password = '';
 
@@ -563,25 +568,21 @@ Client.prototype.handleRelay = function(json) {
       break;
     case "fileRequest":
       var file = this.clientFiles[json['file']];
-      this.emit("initiatingFileSending", from, json['file']);
-      this.transferFileChunk(file, json['file'], from, json['chunkIndex']);
+      this.emit("initiatingFileSending", from, json['file'], this.readers[json['file']]);
       break;
     case "fileChunk":
       // enqueue the chunk
       var writer = this.writers[json['file']];
+      console.log("json"+JSON.stringify(json));
+
       writer.bytesReceived = writer.bytesReceived + json['chunkLength'];
       this.emit("receivedMoreBytes", json['file'], json['chunkIndex'], writer.bytesReceived, writer.startTime);
       writer.add(json['chunk'], json['chunkOffset'], json['chunkIndex']);
       break;
     case "ackChunk":
       // ack the chunk
-      var file = this.clientFiles[json['file']];
-      fileTracker[json['file']]['acked'].push(json['chunkIndex']);
-      var i = json['chunkIndex'];
-      console.log("ack from "+i)
-      while (fileTracker[json['file']]['sent'].indexOf(i) != -1) i++;
-      console.log("asking for "+i+" next")
-      this.transferFileChunk(file, json['file'], from, i);
+      var reader = this.readers[json['file']];
+      reader.ack(json['chunkIndex']);
       break;
     case "nick":
       // this ordering kind of matters
@@ -706,65 +707,34 @@ Client.prototype.setupConnection = function() {
   connection.start();
 }
 
-Client.prototype.transferFileChunk = function(f, fileId, to, chunkIndex) {
-  console.log("transferring chunk "+fileId+" "+chunkIndex);
-  console.time("reading chunk "+chunkIndex);
-  console.time("setup transfer")
+Client.prototype.transferFileChunk = function(to, fileId, chunkIndex) {
   this.emit('fileSendingChunkRequested', to, fileId, chunkIndex);
-  if (!fileTracker[fileId]) fileTracker[fileId] = {sent: [], acked: []};
-
-  fileTracker[fileId]['sent'].push(chunkIndex);
   var client = this;
-  var startingByte = 0;
-  var endingByte = 0;
-  var chunkSize = this.blockSize;
-  var chunkCount = Math.ceil(f.size/chunkSize);
-  var chunkLength = chunkIndex + 1 == chunkCount ? f.size % chunkSize : chunkSize;
-  console.timeEnd("setup transfer");
-  console.time("create blob");
-  var blob = f.slice(chunkSize * chunkIndex, chunkSize * chunkIndex + chunkLength);
-  console.timeEnd("create blob");
-  console.time("create reader");
-  var reader = new FileReader();
-  console.timeEnd("create reader");
-  if (!this.sendFiles[to + fileId]) {
-    this.sendFiles[to+fileId] = 0;
-  }
-  console.log("sending blob "+chunkLength+" @ "+chunkSize * chunkIndex);
-  reader.onload = function(e) {
-    client.emit('fileSendingChunkQueued', to, fileId, chunkIndex);
-    if (e.target.readyState == FileReader.DONE) {
-      console.timeEnd("reading chunk "+chunkIndex);
-      var request = {type: "fileChunk", file: fileId, chunkOffset: chunkSize * chunkIndex, chunkLength:
-chunkLength, size: f.size, chunkIndex: chunkIndex, chunkCount: chunkCount};
-      console.time("sending low message");
-      client.sendLowMessage(request, {transfer: e.target.result}, function() {
-        client.sendFiles[to+fileId] = client.sendFiles[to+fileId] + chunkLength;
-        client.emit('fileSendingChunkSent', to, fileId, chunkIndex, client.sendFiles[to+fileId], f.size, f.name);
-        console.timeEnd("sending low message");
-      });
-    }
-  };
-  console.time("reading blob");
-  reader.readAsArrayBuffer(blob);
-  console.timeEnd("reading blob");
-  var gap = fileTracker[fileId]['sent'].length - fileTracker[fileId]['acked'].length;
-  console.log("gap:"+gap);
-  if (gap < this.opts.sendingGap) {
-    console.log("goin...");
-    if (chunkIndex != chunkCount - 1) {
-      console.log("getting chunkIndex:"+(chunkIndex + 1));
-      client.transferFileChunk(f, fileId, to, chunkIndex + 1);
-    }
+  if (this.readers[fileId]) {
+    var reader = this.readers[fileId];
+    reader.send(chunkIndex, function(startOffset, endOffset, total) {
+      client.emit('fileSendingChunkSent', to, fileId, chunkIndex, total, reader.size, reader.size);
+    });
   }
 }
 
 Client.prototype.offerFiles = function(files) {
+  var client = this;
   var offer = [];
   for (var i = 0, f; f = files[i]; i++) {
     var fileId = uuid.v4();
-    this.clientFiles[fileId] = f;
-    offer.push({fileId: fileId, name: f.name, size: f.size, type: f.type, chunkCount: Math.ceil(f.size/this.blockSize)});
+    var reader = this.readers[fileId] = this.fs.reader(fileId, f, this.chunkSize);
+    reader.on('chunkLoaded', function(index, length, chunk) {
+      var request = {type: "fileChunk", file: fileId, chunkOffset: client.chunkSize * index, chunkLength:
+length, size: reader.size, chunkIndex: index, chunkCount: reader.chunkCount};
+      console.log("sending chunk");
+      console.dir(request);
+      client.sendLowMessage(request, {transfer: chunk});
+    });
+    reader.on('finished', function(url) {
+      client.emit('fileComplete', fileId, url);
+    });
+    offer.push({fileId: fileId, name: reader.name, size: reader.size, type: reader.type, chunkCount: reader.chunkCount});
   }
   var client = this;
   this.sendMessage({type: "fileOffer", files: offer}, function() {
@@ -921,8 +891,8 @@ Web.prototype.setupSocket = function() {
 }
 
 },{"./base":3,"events":18,"underscore":22}],5:[function(require,module,exports){
-var _ = require('underscore'),
-    EventEmitter = require('events').EventEmitter;
+var _ = require('underscore');
+var EventEmitter = require('events').EventEmitter;
 
 function errorHandler(e) {
   var msg = '';
@@ -948,6 +918,71 @@ function errorHandler(e) {
       break;
   };
   console.log('Error: ' + msg);
+}
+
+function Reader(fileId, file, chunkSize) {
+  this.file = file;
+  this.name = file.name;
+  this.size = file.size;
+  this.type = file.type;
+  this.chunkSize = chunkSize;
+  console.log("this.chunkSize:"+this.chunkSize);
+  this.chunkCount = Math.ceil(file.size / chunkSize);
+  console.log("file.size:"+file.size);
+  console.log("this.chunkCount:"+this.chunkCount);
+  this.tracker = new Array(this.chunkCount);
+  for (var i = 0; i != this.chunkCount; i++) {
+    this.tracker[i] = Reader.UNSENT;
+  }
+  this.unsentCount = this.chunkCount;
+  this.sentCount = 0;
+  this.ackedCount = 0;
+}
+
+Reader.UNSENT = 0;
+Reader.SENT = 1;
+Reader.ACKED = 2;
+
+Reader.prototype.ack = function(index) {
+  if (this.acks != Reader.SENT) return;
+  this.sentCount--;
+  this.ackedCount++;
+  this.tracker[index] = Reader.ACKED;
+  this.doMoreWork();
+}
+
+Reader.prototype.doMoreWork = function() {
+  var gap = this.sentCount - this.ackedCount;
+  console.log("gap:"+gap);
+  // TODO, this gap should be customizable
+  if (gap < 20) {
+    for (var i = 0; i != this.chunkCount; i++) {
+      if (this.tracker[i] == Reader.UNSENT) {
+        return this.send(i);
+      }
+    }
+  }
+}
+
+Reader.prototype.send = function(index) {
+  var reader = this;
+  var chunkLength = index == this.chunkCount - 1 ? this.file.size % this.chunkSize : this.chunkSize;
+  var blob = this.file.slice(this.chunkSize * index, this.chunkSize * index + chunkLength);
+  var fileReader = new FileReader();
+  fileReader.onload = function(e) {
+    if (e.target.readyState == FileReader.DONE) {
+      reader.emit('chunkLoaded', index, chunkLength, e.target.result);
+    }
+  };
+  console.time("reading blob");
+  fileReader.readAsArrayBuffer(blob);
+  console.timeEnd("reading blob");
+  if (this.tracker[index] != Reader.SENT) {
+    this.unsentCount--;
+    this.sentCount++;
+  }
+  this.tracker[index] = Reader.SENT;
+  this.doMoreWork();
 }
 
 function Writer(fileId, chunkCount, filesize, dir) {
@@ -1067,8 +1102,13 @@ FS.prototype.writer = function(fileId, chunkCount, fileSize) {
   return new Writer(fileId, chunkCount, fileSize, this.entry)
 }
 
+FS.prototype.reader = function(fileId, file, chunkSize) {
+  return new Reader(fileId, file, chunkSize);
+}
+
 _.extend(FS.prototype, EventEmitter.prototype);
 _.extend(Writer.prototype, EventEmitter.prototype);
+_.extend(Reader.prototype, EventEmitter.prototype);
 
 
 },{"events":18,"underscore":22}],6:[function(require,module,exports){
