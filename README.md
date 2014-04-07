@@ -2,13 +2,13 @@
 
 ## The easy way to send files between browsers.
 
-This is currently in super-alpha stage right now, but here's what I've got so far.
+This is currently in super-alpha stage, but here's what's working right now:
 
 Slick is a web-app for chatting and sending files in a safe, encrypted way.
 
 ## Setup
 
-To get this running, start by cloning the repo. Make sure you have redis running locally too.
+To get this running, start by cloning the repo. Make sure you have redis running locally too (on the default port).
 Run `npm install` to install the needed submodules and use `PORT=300 node index.js` to run a server
 locally.
 
@@ -16,7 +16,7 @@ locally.
 
 Once you've got a server running, connect to it using chrome (in the above example, go to http://localhost:3000/).
 Then, click *join room*. Then, copy that link to another computer (with the correct hostname), and start chatting.
-To send a file, drag and drop it onto the chat area.
+To send a file, drag and drop it onto the chat area. You can drag and drop multiple files at once. We are still working on directory support.
 
 ## Development
 
@@ -41,12 +41,11 @@ When a client wants to send a big file, it's currently divided into 1 megabyte c
 
 So .. there are a few wacky browser techs in here that make this possible. *Web workers* are doing the background processing of chunks and encoding them. *Web sockets* are being used to send the data. The file reader and writer apis are being used to both read and write file chunks. The file writer specific is seemingly only really supported on Chrome so far. The browser can request a file sandbox to write things into, and, can present the user with a download link when the file is completely assembled. Until you've initiated the file download after it's been transferred, the file is in Chrome's file sandbox.
 
-## Obvious things I really need to do
+## Obvious things we really need to do
 
-* Clean-up the code outta prototype stage
+* Clean-up the code out of prototype stage
 * Add a basic test
 * Create a working CLI
 * Make the interface not insane
 * Store the public and private keys securely
 * Not double encode the binary chunks using base64
-*
