@@ -9,7 +9,7 @@ Slick is a web-app for chatting and sending files in a safe, encrypted way.
 ## Setup
 
 To get this running, start by cloning the repo. Make sure you have redis running locally too (on the default port).
-Run `npm install` to install the needed submodules and use `PORT=300 node index.js` to run a server
+Run `npm install` to install the needed submodules and use `PORT=3000 node index.js` to run a server
 locally.
 
 ## Creating your first room

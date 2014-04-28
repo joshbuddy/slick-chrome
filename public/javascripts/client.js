@@ -199,14 +199,17 @@ BrowserUI.prototype.init = function() {
   this.chatWindow.addEventListener('dragover', function(e) { client.handleDragOver(e) }, false);
   this.chatWindow.addEventListener('drop', function(e) { client.handleFileSelect(e) }, false);
 
+  if (client.roomId) {
+    ui.promptPassword();
+  } else {
+    document.getElementById("create-room-button").onclick = function() {
+      ui.promptPassword();
+    };
+  }
+
   document.getElementById('inline-media').addEventListener('click', function(evt) {
     console.log(evt.target.checked);
   })
-
-  var joinButton = document.getElementById('join');
-  joinButton.addEventListener('click', function(evt) {
-    client.setupConnection();
-  });
 
   document.getElementById('chatBox').addEventListener('keydown', function(e) {
     ui.processInput(event);
@@ -220,6 +223,35 @@ BrowserUI.prototype.init = function() {
     }
     client.password = document.getElementById("password").value;
   }
+}
+
+BrowserUI.prototype.promptPassword = function(roomId) {
+  document.getElementById('ui').style.display = 'none';
+  document.getElementById('menu').style.display = 'block';
+  var buttons = document.getElementsByClassName("button");
+  while (buttons[0]) {
+    buttons[0].parentNode.removeChild(buttons[0]);
+  }
+  var passwordPrompt = document.createElement("p");
+  passwordPrompt.appendChild(document.createTextNode("Enter passcode (optional):"));
+  passwordPrompt.className = "menu-text";
+  document.getElementById("menu").appendChild(passwordPrompt);
+  var passcodeInput = document.createElement("input");
+  passcodeInput.type = "password";
+  document.getElementById("menu").appendChild(passcodeInput);
+  var submitButton = document.createElement("div");
+  submitButton.className = "button-small";
+  submitButton.appendChild(document.createTextNode("Submit"));
+  var client = this.client;
+  submitButton.onclick = function() {
+    document.getElementById("password").value = passcodeInput.value;
+    client.setupConnection();
+    document.getElementById("menu").style.display = 'none';
+    document.getElementById("ui").style.display = 'block';
+  };
+  var submitButtonDiv = document.createElement("div");
+  submitButtonDiv.appendChild(submitButton);
+  document.getElementById("menu").appendChild(submitButtonDiv);
 }
 
 BrowserUI.prototype.scrollToBottom = function() {
