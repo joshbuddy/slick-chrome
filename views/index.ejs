@@ -1,20 +1,30 @@
 <html>
   <head>
     <title>Slick!</title>
-    <link href="/stylesheets/style.css" rel="stylesheet" type="text/css">
+    <link href="/stylesheets/style.css" rel="stylesheet" type="text/css"></link>
   </head>
   <body data-room-id="<%= roomId %>">
     <h1 class="title">&#9774;slick</h1><br clear="all">
-    <div class="main">
-      <button id="join">Join room</button> <span id="room-status">unlocked</span> <input type="password" id="password">
-      <input type="checkbox" id="inline-media"> Inline Media
-      <div id="chat-window"></div>
-      <span id="to" onclick="toAction()">[All]</span><input style="width: 50%" type="text" id="chatBox"></input>
-      <div id="progress-list"></div>
-      <output id="list"></output>
+    <div id="menu">
+      <div class="menu-background"></div>
+      <a class="button" id="create-room-button">Create New Room</a>
+      <a class="button">Browse Public Rooms (current unavailable)</a>
     </div>
-    <div class="sidebar">
-      <div id="users-list"></div>
+    <div id="ui">
+      <div class="roomlist">
+        <button>New Room (disabled)</button>
+      </div>
+      <div class="main">
+        <span id="room-status">unlocked</span> <input type="password" id="password">
+        <input type="checkbox" id="inline-media"> Inline Media
+        <div id="chat-window"></div>
+        <span id="to" onclick="toAction()">[All]</span><input style="width: 50%" type="text" id="chatBox"></input>
+        <div id="progress-list"></div>
+        <output id="list"></output>
+      </div>
+      <div class="sidebar">
+        <div id="users-list"></div>
+      </div>
     </div>
     <script src="/javascripts/client.js"></script>
   </body>

@@ -7,11 +7,98 @@ body {
       color-stop(60%, blue),
       color-stop(76%, indigo),
       color-stop(1.00, violet));
-  }
+}
+
+#ui {
+  display: none;
+}
+
+#menu {
+  position: relative;
+  width: 600px;
+  height: 200px;
+  margin: 0 auto;
+  margin-top: 10%;
+  padding: 20px;
+}
+
+.menu-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: black;
+  opacity: 0.6;
+}
+
+.menu-text {
+  position: relative;
+  z-index: 2;
+  font-size: 18pt;
+  color: white;
+  margin: 20px;
+}
+
+#menu input {
+  position: relative;
+  z-index: 2;
+  font-size: 18pt;
+  color: black;
+  margin-left: 20px;
+  width: 560px;
+}
+
+#menu .button {
+  position: relative;
+  z-index: 2;
+  font-size: 18pt;
+  margin: 20px;
+  height: 68px;
+  line-height: 68px;
+  color: #333333;
+  text-align: center;
+  background-color: white;
+  border: 2px solid white;
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+#menu a.button:hover {
+  background-color: #FFFFCC;
+  color: black;
+  border: 2px solid red;
+}
+
+#menu .button-small {
+  position: relative;
+  z-index: 2;
+  margin: 20px;
+  background-color: #CCCCCC;
+  color: black;
+  font-size: 14pt;
+  display: inline-block;
+  padding: 10px;
+  border-radius: 10px;
+  box-sizing: border-box;
+  cursor: pointer;
+  border: 2px solid #CCCCCC;
+}
+
+#menu .button-small:hover {
+  background-color: #FFFFCC;
+  color: black;
+  border: 2px solid red;
 }
 
 .inline {
   display: none;
+}
+
+.roomlist {
+  float: left;
+  width: 20%;
 }
 
 .main {
