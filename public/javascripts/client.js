@@ -15,6 +15,7 @@ var BrowserUI = module.exports = function(client) {
 
   client.on("joined", function(id) {
     history.pushState(null, null, "/"+id);
+    ui.addToRoomTabs(id);
   });
 
   client.on("message", function(body, classname) {
@@ -107,6 +108,10 @@ BrowserUI.prototype.init = function() {
     };
   }
 
+  document.getElementById("create-room-tab").onclick = function() {
+    ui.promptPassword();
+  }
+
   document.getElementById('inline-media').addEventListener('click', function(evt) {
     console.log(evt.target.checked);
   })
@@ -128,9 +133,9 @@ BrowserUI.prototype.init = function() {
 BrowserUI.prototype.promptPassword = function(roomId) {
   document.getElementById('ui').style.display = 'none';
   document.getElementById('menu').style.display = 'block';
-  var buttons = document.getElementsByClassName("button");
-  while (buttons[0]) {
-    buttons[0].parentNode.removeChild(buttons[0]);
+  var menuChildren = document.getElementById('menu').children;
+  while (menuChildren[1]) {
+    menuChildren[1].parentNode.removeChild(menuChildren[1]);
   }
   var passwordPrompt = document.createElement("p");
   passwordPrompt.appendChild(document.createTextNode("Enter passcode (optional):"));
@@ -143,15 +148,41 @@ BrowserUI.prototype.promptPassword = function(roomId) {
   submitButton.className = "button-small";
   submitButton.appendChild(document.createTextNode("Submit"));
   var client = this.client;
+  var ui = this;
   submitButton.onclick = function() {
     document.getElementById("password").value = passcodeInput.value;
-    client.setupConnection();
+    client.setupConnection(true);
     document.getElementById("menu").style.display = 'none';
     document.getElementById("ui").style.display = 'block';
   };
   var submitButtonDiv = document.createElement("div");
   submitButtonDiv.appendChild(submitButton);
   document.getElementById("menu").appendChild(submitButtonDiv);
+}
+
+BrowserUI.prototype.addToRoomTabs = function(roomId) {
+  var newTab = document.createElement("div");
+  newTab.id = "room-"+roomId+"-tab";
+  newTab.className = "room-tab";
+  newTab.appendChild(document.createTextNode(roomId));
+  document.getElementById('roomlist').appendChild(newTab);
+  this.switchRoomTabs(newTab);
+  var ui = this;
+  newTab.onclick = function() {
+    ui.switchRoomTabs(this);
+  };
+}
+
+BrowserUI.prototype.switchRoomTabs = function(roomTab) {
+  var roomTabs = document.getElementById('roomlist').children;
+  for (var i=0; i<roomTabs.length; i++) {
+    roomTabs[i].classList.remove("active");
+  }
+  roomTab.classList.add("active");
+  // TODO: should be able to grab history of this room, not just clear it
+  document.getElementById('chat-window').innerHTML = "";
+  // this should update itself via pings?
+  document.getElementById('users-list').innerHTML = "";
 }
 
 BrowserUI.prototype.scrollToBottom = function() {
@@ -657,8 +688,12 @@ Client.prototype.addUser = function(userId) {
   this.sendMessage({type: "join"});
 }
 
-Client.prototype.setupConnection = function() {
-  var connection = new Connection(this.url, this.roomId);
+Client.prototype.setupConnection = function(forceNewConnection) {
+  if (forceNewConnection) {
+    var connection = new Connection(this.url);
+  } else {
+    var connection = new Connection(this.url, this.roomId);
+  }
 
   var client = this;
   var keys = this.generateKeys();
@@ -720,6 +755,7 @@ Client.prototype.setupConnection = function() {
 
     connection.on("joined", function(id) {
       client.emit("joined", id);
+      client.roomId = id;
     })
 
     connection.on('message', function(message) {
