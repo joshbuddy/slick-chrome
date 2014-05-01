@@ -209,7 +209,7 @@ BrowserUI.prototype.init = function() {
   this.chatWindow.addEventListener('drop', function(e) { client.handleFileSelect(e) }, false);
 
   if (client.roomId) {
-    ui.promptPassword();
+    ui.promptPassword(client.roomId);
   } else {
     document.getElementById("create-room-button").onclick = function() {
       ui.promptPassword();
@@ -259,7 +259,11 @@ BrowserUI.prototype.promptPassword = function(roomId) {
   var ui = this;
   submitButton.onclick = function() {
     document.getElementById("password").value = passcodeInput.value;
-    client.setupConnection(true);
+    if (roomId) {
+      client.setupConnection();
+    } else {
+      client.setupConnection(true);
+    }
     document.getElementById("menu").style.display = 'none';
     document.getElementById("ui").style.display = 'block';
   };
