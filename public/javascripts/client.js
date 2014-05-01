@@ -183,15 +183,6 @@ var BrowserUI = module.exports = function(client) {
   client.on("fileComplete", function(fileId, url) {
     ui.completeFile(fileId, url);
   });
-
-  client.on("open", function() {
-    var usersList = document.getElementById('users-list');
-    var name = document.createElement("div");
-    name.id = client.publicKey;
-    name.className = "name";
-    name.innerHTML = "&#9733; "+client.publicKey.substring(0, 6);
-    usersList.appendChild(name);
-  })
 }
 
 BrowserUI.prototype.init = function() {
@@ -298,7 +289,13 @@ BrowserUI.prototype.switchRooms = function(room) {
   document.getElementById('password').value = room.passcode;
   document.getElementById('chat-window').innerHTML = room.chat;
   // this should update itself via pings?
-  document.getElementById('users-list').innerHTML = "";
+  var usersList = document.getElementById('users-list');
+  usersList.innerHTML = "";
+  var name = document.createElement("div");
+  name.id = this.client.publicKey;
+  name.className = "name";
+  name.innerHTML = "&#9733; "+this.client.publicKey.substring(0, 6);
+  usersList.appendChild(name);
 }
 
 BrowserUI.prototype.scrollToBottom = function() {
